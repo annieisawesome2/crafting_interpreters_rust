@@ -53,6 +53,38 @@ impl Scanner {
             '+' => self.add_token(TokenType::Plus, None),
             ';' => self.add_token(TokenType::Semicolon, None),
             '*' => self.add_token(TokenType::Star, None),
+            '!' => {
+                let kind = if self.matches_char('=') {
+                    TokenType::BangEqual
+                } else {
+                    TokenType::Bang
+                };
+                self.add_token(kind, None);
+            }
+            '=' => {
+                let kind = if self.matches_char('=') {
+                    TokenType::EqualEqual
+                } else {
+                    TokenType::Equal
+                };
+                self.add_token(kind, None);
+            }
+            '<' => {
+                let kind = if self.matches_char('=') {
+                    TokenType::LessEqual
+                } else {
+                    TokenType::Less
+                };
+                self.add_token(kind, None);
+            }
+            '>' => {
+                let kind = if self.matches_char('=') {
+                    TokenType::GreaterEqual
+                } else {
+                    TokenType::Greater
+                };
+                self.add_token(kind, None);
+            }
             _ => lox.error(self.line, "Unexpected character."),
         }
     }
@@ -75,5 +107,18 @@ impl Scanner {
             literal,
             line: self.line,
         });
+    }
+
+    fn matches_char(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false; 
+        }
+
+        if self.source[self.current] != expected {
+            return false; 
+        }
+
+        self.current += 1; 
+        true
     }
 }
