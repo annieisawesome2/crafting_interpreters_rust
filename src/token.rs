@@ -6,7 +6,6 @@ pub struct Token {
     pub line: usize,
 }
 
-/// Java's `Object literal` — populated for string, number, and bool tokens.
 #[derive(Debug, Clone)]
 pub enum LiteralValue {
     String(String),
