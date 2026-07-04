@@ -98,6 +98,7 @@ impl Scanner {
             '\n' => self.line += 1,
             '"' => self.string(lox),
             c if Self::is_digit(c) => self.number(),
+            c if Self::is_alpha(c) => self.identifier(),
             _ => lox.error(self.line, "Unexpected character."),
         }
     }
@@ -196,4 +197,47 @@ impl Scanner {
             self.source[self.current+1]
         }
     }
+
+    fn is_alpha(c: char) -> bool {
+        c.is_ascii_alphabetic() || c == '_'
+    }
+    
+    fn is_alpha_numeric(c: char) -> bool {
+        Self::is_alpha(c) || Self::is_digit(c)
+    }
+
+    fn identifier(&mut self) {
+        while Self::is_alpha_numeric(self.peek()) {
+            self.advance();
+        }
+    
+        let text: String = self.source[self.start..self.current].iter().collect();
+        let kind = Self::keyword_type(&text).unwrap_or(TokenType::Identifier);
+    
+        self.add_token(kind, None);
+    }
+
+    fn keyword_type(word: &str) -> Option<TokenType> {
+        match word {
+            "and" => Some(TokenType::And),
+            "class" => Some(TokenType::Class),
+            "else" => Some(TokenType::Else),
+            "false" => Some(TokenType::False),
+            "for" => Some(TokenType::For),
+            "fun" => Some(TokenType::Fun),
+            "if" => Some(TokenType::If),
+            "nil" => Some(TokenType::Nil),
+            "or" => Some(TokenType::Or),
+            "print" => Some(TokenType::Print),
+            "return" => Some(TokenType::Return),
+            "super" => Some(TokenType::Super),
+            "this" => Some(TokenType::This),
+            "true" => Some(TokenType::True),
+            "var" => Some(TokenType::Var),
+            "while" => Some(TokenType::While),
+            _ => None,
+        }
+    }
+
+
 }
