@@ -11,9 +11,10 @@ pub enum LiteralValue {
     String(String),
     Number(f64),
     Boolean(bool),
+    Nil,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -71,6 +72,7 @@ impl std::fmt::Display for Token {
             Some(LiteralValue::String(s)) => s.clone(),
             Some(LiteralValue::Number(n)) => n.to_string(),
             Some(LiteralValue::Boolean(b)) => b.to_string(),
+            Some(LiteralValue::Nil) => "nil".to_string(),
         };
         write!(f, "{:?} {} {}", self.kind, self.lexeme, literal)
     }

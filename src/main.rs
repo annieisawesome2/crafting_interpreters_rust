@@ -2,6 +2,7 @@ mod expr;
 mod lox;
 mod scanner;
 mod token;
+mod parser; 
 
 use expr::{demo_expression, print};
 use lox::Lox;

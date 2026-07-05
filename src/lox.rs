@@ -1,5 +1,7 @@
 use std::io::{self, BufRead, Write};
 
+use crate::token::{Token, TokenType};
+
 pub struct Lox {
     had_error: bool,
 }
@@ -9,7 +11,15 @@ impl Lox {
         Lox { had_error: false }
     }
 
-    pub fn error(&mut self, line: usize, message: &str) {
+    pub fn error(&mut self, token: &Token, message: &str) {
+        if token.kind == TokenType::Eof {
+            self.report(token.line, " at end", message);
+        } else {
+            self.report(token.line, &format!(" at '{}'", token.lexeme), message);
+        }
+    }
+
+    pub fn error_at(&mut self, line: usize, message: &str) {
         self.report(line, "", message);
     }
 
@@ -26,8 +36,15 @@ impl Lox {
         let mut scanner = crate::scanner::Scanner::new(source);
         let tokens = scanner.scan_tokens(self);
 
-        for token in tokens {
-            println!("{token}");
+        let mut parser = crate::parser::Parser::new(tokens);
+        let expression = parser.parse(self);
+
+        if self.had_error {
+            return;
+        }
+
+        if let Some(expr) = expression {
+            println!("{}", crate::expr::print(&expr));
         }
     }
 

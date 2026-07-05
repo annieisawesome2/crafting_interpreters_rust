@@ -28,6 +28,7 @@ pub fn print(expr: &Expr) -> String {
             LiteralValue::String(s) => s.clone(),
             LiteralValue::Number(n) => n.to_string(),
             LiteralValue::Boolean(b) => b.to_string(),
+            LiteralValue::Nil => "nil".to_string(),
         },
         Expr::Unary { operator, right } => parenthesize(&operator.lexeme, &[right]),
     }
