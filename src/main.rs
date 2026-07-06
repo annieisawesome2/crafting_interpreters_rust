@@ -4,6 +4,7 @@ mod scanner;
 mod token;
 mod parser; 
 mod interpreter;
+mod stmt; 
 
 use expr::{demo_expression, print};
 use lox::Lox;

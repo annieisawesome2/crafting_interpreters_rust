@@ -57,15 +57,15 @@ impl Lox {
         let tokens = scanner.scan_tokens(self);
 
         let mut parser = crate::parser::Parser::new(tokens);
-        let expression = parser.parse(self);
+        let statements = parser.parse(self); 
 
         if self.had_error {
             return;
         }
 
-        if let Some(expr) = expression {
-            if let Err(e) = self.interpreter.interpret(&expr) {
-                self.runtime_error(&e.token, &e.message);
+        if let Some(stmts) = statements {
+            if let Err(e) = self.interpreter.interpret(&stmts) {
+                self.runtime_error(&e.token, &e.message); 
             }
         }
     }
