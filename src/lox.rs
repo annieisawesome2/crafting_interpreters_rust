@@ -4,11 +4,15 @@ use crate::token::{Token, TokenType};
 
 pub struct Lox {
     had_error: bool,
+    had_runtime_error: bool,
 }
 
 impl Lox {
     pub fn new() -> Self {
-        Lox { had_error: false }
+        Lox {
+            had_error: false,
+            had_runtime_error: false,
+        }
     }
 
     pub fn error(&mut self, token: &Token, message: &str) {
@@ -19,8 +23,21 @@ impl Lox {
         }
     }
 
+    pub fn runtime_error(&mut self, token: &Token, message: &str) {
+        if token.kind == TokenType::Eof {
+            eprintln!("[line {}] Runtime error at end: {message}", token.line);
+        } else {
+            eprintln!(
+                "[line {}] Runtime error at '{}': {message}",
+                token.line, token.lexeme
+            );
+        }
+        self.had_runtime_error = true;
+    }
+
     pub fn error_at(&mut self, line: usize, message: &str) {
-        self.report(line, "", message);
+        eprintln!("[line {line}] Error: {message}");
+        self.had_error = true;
     }
 
     fn report(&mut self, line: usize, where_: &str, message: &str) {
@@ -30,6 +47,7 @@ impl Lox {
 
     fn reset_error(&mut self) {
         self.had_error = false;
+        self.had_runtime_error = false;
     }
 
     pub fn run(&mut self, source: &str) {
@@ -44,7 +62,10 @@ impl Lox {
         }
 
         if let Some(expr) = expression {
-            println!("{}", crate::expr::print(&expr));
+            let mut interpreter = crate::interpreter::Interpreter;
+            if let Err(e) = interpreter.interpret(&expr) {
+                self.runtime_error(&e.token, &e.message);
+            }
         }
     }
 
@@ -54,6 +75,9 @@ impl Lox {
 
         if self.had_error {
             std::process::exit(65);
+        }
+        if self.had_runtime_error {
+            std::process::exit(70);
         }
     }
 
