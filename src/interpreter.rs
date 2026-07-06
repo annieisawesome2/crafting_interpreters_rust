@@ -9,18 +9,24 @@ pub struct RuntimeError {
 pub struct Interpreter;
 
 impl Interpreter {
-    pub fn interpret(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
+    pub fn interpret(&mut self, expr: &Expr) -> Result<(), RuntimeError> {
+        let value = self.evaluate(expr)?;
+        println!("{}", Self::stringify(&value));
+        Ok(())
+    }
+
+    fn evaluate(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
         match expr {
             Expr::Literal { value } => Ok(value.clone()),
-            Expr::Grouping { expression } => self.interpret(expression),
+            Expr::Grouping { expression } => self.evaluate(expression),
             Expr::Unary { operator, right } => {
-                let operand = self.interpret(right)?;
+                let operand = self.evaluate(right)?;
                 self.apply_unary(operator, operand)
             }
 
             Expr::Binary { left, operator, right } => {
-                let left = self.interpret(left)?;
-                let right = self.interpret(right)?;
+                let left = self.evaluate(left)?;
+                let right = self.evaluate(right)?;
                 self.apply_binary(operator, left, right)
             }
         }
@@ -156,6 +162,22 @@ impl Interpreter {
         match (left, right) {
             (LiteralValue::Number(l), LiteralValue::Number(r)) => (*l, *r),
             _ => unreachable!("check_number_operands should run first"),
+        }
+    }
+
+    fn stringify(value: &LiteralValue) -> String {
+        match value {
+            LiteralValue::Nil => "nil".into(),
+            LiteralValue::Boolean(b) => b.to_string(),
+            LiteralValue::String(s) => s.clone(),
+            LiteralValue::Number(n) => {
+                let text = n.to_string();
+                if text.ends_with(".0") {
+                    text[..text.len() - 2].to_string()
+                } else {
+                    text
+                }
+            }
         }
     }
 

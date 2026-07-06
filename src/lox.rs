@@ -5,6 +5,7 @@ use crate::token::{Token, TokenType};
 pub struct Lox {
     had_error: bool,
     had_runtime_error: bool,
+    interpreter: crate::interpreter::Interpreter,
 }
 
 impl Lox {
@@ -12,6 +13,7 @@ impl Lox {
         Lox {
             had_error: false,
             had_runtime_error: false,
+            interpreter: crate::interpreter::Interpreter,
         }
     }
 
@@ -62,8 +64,7 @@ impl Lox {
         }
 
         if let Some(expr) = expression {
-            let mut interpreter = crate::interpreter::Interpreter;
-            if let Err(e) = interpreter.interpret(&expr) {
+            if let Err(e) = self.interpreter.interpret(&expr) {
                 self.runtime_error(&e.token, &e.message);
             }
         }
