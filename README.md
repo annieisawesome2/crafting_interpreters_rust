@@ -22,6 +22,10 @@ cargo run
 cargo run path/to/script.lox
 ```
 
+## Documentation
+
+See [docs/](docs/README.md) for grammar rules, AST nodes, and the interpreter pipeline.
+
 ## References
 
 - [Crafting Interpreters](https://craftinginterpreters.com/)
