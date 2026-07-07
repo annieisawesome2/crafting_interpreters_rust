@@ -22,13 +22,41 @@ impl Parser {
         let mut statements = Vec::new(); 
 
         while !self.is_at_end() {
-            match self.statement(lox) {
-                Ok(stmt) => statements.push(stmt),
-                Err(ParseError) => return None,
+            if let Some(stmt) = self.declaration(lox) {
+                statements.push(stmt);
+            }
+        }
+        Some(statements)
+    }
+
+    fn declaration(&mut self, lox: &mut Lox) -> Option<Stmt> {
+        match self.try_declaration(lox) {
+            Ok(stmt) => Some(stmt), 
+            Err(ParseError) => {
+                self.synchronize();
+                None
             }
         }
 
-        Some(statements)
+    }
+
+    fn try_declaration(&mut self, lox:&mut Lox) -> Result<Stmt, ParseError> {
+        if self.match_types(&[TokenType::Var]) {
+            return self.var_declaration(lox); 
+        }
+        self.statement(lox)
+    }
+
+    fn var_declaration(&mut self, lox:&mut Lox) -> Result<Stmt, ParseError> {
+        let name = self.consume(lox, TokenType::Identifier, "Expect variable name.")?.clone(); 
+        let initializer = if self.match_types(&[TokenType::Equal]) {
+            Some(Box::new(self.expression(lox)?))
+        } else {
+            None
+        };
+
+        self.consume(lox, TokenType::Semicolon, "Expect ';' after variable declaration.")?;
+        Ok(Stmt::Var { name, initializer })
     }
 
     fn expression(&mut self, lox: &mut Lox) -> Result<Expr, ParseError> {
@@ -201,6 +229,12 @@ impl Parser {
             return Ok(Expr::Literal {value} );
         }
 
+        if self.match_types(&[TokenType::Identifier]) {
+            return Ok(Expr::Variable {
+                name: self.previous().clone(),
+            });
+        }
+
         if self.match_types(&[TokenType::LeftParen]) {
             let expr = self.expression(lox)?;
             self.consume(lox, TokenType::RightParen, "Expect ')' after expression.")?;
@@ -228,9 +262,6 @@ impl Parser {
         ParseError
     }
     
-
-
-    #[allow(dead_code)]
     fn synchronize(&mut self) {
         self.advance();
 

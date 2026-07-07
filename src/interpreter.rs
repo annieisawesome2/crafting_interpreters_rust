@@ -29,6 +29,13 @@ impl Interpreter {
                 println!("{}", Self::stringify(&value)); 
                 Ok(())
             }
+
+            Stmt::Var { initializer, .. } => {
+                if let Some(init) = initializer {
+                    self.evaluate(init)?;
+                }
+                Ok(())
+            }
         }
     }
 
@@ -45,6 +52,10 @@ impl Interpreter {
                 let left = self.evaluate(left)?;
                 let right = self.evaluate(right)?;
                 self.apply_binary(operator, left, right)
+            }
+
+            Expr::Variable { name } => {
+                Err(Self::runtime_error(name, "Undefined variable."))
             }
         }
     }

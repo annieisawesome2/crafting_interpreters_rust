@@ -16,10 +16,13 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Variable {
+        name: Token
+    },
 }
 
 pub fn print(expr: &Expr) -> String {
-    match expr {
+    match &expr {
         Expr::Binary { left, operator, right } => {
             parenthesize(&operator.lexeme, &[left, right])
         }
@@ -31,6 +34,7 @@ pub fn print(expr: &Expr) -> String {
             LiteralValue::Nil => "nil".to_string(),
         },
         Expr::Unary { operator, right } => parenthesize(&operator.lexeme, &[right]),
+        Expr::Variable { name } => name.lexeme.clone(),
     }
 }
 
