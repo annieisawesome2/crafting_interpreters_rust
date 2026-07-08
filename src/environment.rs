@@ -19,5 +19,14 @@ impl Environment {
     pub fn get(&self, name: &str) -> Option<LiteralValue> {
         self.values.get(name).cloned()
     }
+
+    pub fn assign(&mut self, name:&str, value: LiteralValue) -> bool {
+        if self.values.contains_key(name) {
+            self.values.insert(name.to_string(), value); 
+            true
+        } else {
+            false
+        }
+    }
 }
 

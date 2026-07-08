@@ -100,12 +100,7 @@ In REPL mode, errors are printed and the prompt continues (`reset_error()` after
 
 ---
 
-## Planned: environments
+## Environments
 
-Global and local variables require an **environment** — a map from name to value. The interpreter will hold an `Environment` and:
-
-- `Stmt::Var` → `define(name, value)`
-- `Expr::Variable` → `get(name)`
-- `Expr::Assign` → update existing binding
-
-Nested `Block` statements will push/pop child environments for local scope.
+The interpreter owns a global `Environment` (`HashMap<String, LiteralValue>`).
+`Interpreter::new()` creates the environment which lives when interpreter does so the global variables can persist. 

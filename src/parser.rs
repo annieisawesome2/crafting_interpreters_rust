@@ -60,7 +60,7 @@ impl Parser {
     }
 
     fn expression(&mut self, lox: &mut Lox) -> Result<Expr, ParseError> {
-        self.equality(lox)
+        self.assignment(lox)
     }
 
     fn statement(&mut self, lox: &mut Lox) -> Result<Stmt, ParseError> {
@@ -86,6 +86,32 @@ impl Parser {
             expression: Box::new(expr),
         })
     }
+
+    fn assignment(&mut self, lox: &mut Lox) -> Result<Expr, ParseError> {
+        // parse left side expression, then check if it is assignable
+        let expr = self.equality(lox)?;
+
+        // consime if next token is =
+        if self.match_types(&[TokenType::Equal]) {
+            let equals = self.previous().clone(); 
+
+            // recursively call assignment to parse right side
+            let value = self.assignment(lox)?; 
+
+            if let Expr::Variable { name } = expr {
+                return Ok(Expr::Assign {
+                    name, 
+                    value: Box::new(value),
+                })
+            }
+
+            Self::error(lox, &equals, "Invalid assignment target.");
+        }
+
+        Ok(expr)
+    }
+
+
 
     fn equality(&mut self, lox: &mut Lox) -> Result<Expr, ParseError> {
         let mut expr = self.comparison(lox)?;

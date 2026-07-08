@@ -75,6 +75,20 @@ impl Interpreter {
                     ))
                 }
             }
+
+            Expr::Assign { name, value} => {
+                let value = self.evaluate(value)?;
+                if self.environment.assign(&name.lexeme, value.clone()) {
+                    Ok(value) // value is assigned
+                } else {
+                    Err(Self::runtime_error(
+                        name,
+                        format!("Undefined variable '{}'.", name.lexeme),
+                    ))
+                }
+            }
+
+
         }
     }
 

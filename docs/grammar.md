@@ -39,7 +39,7 @@ The semicolon terminates the **statement**, not the expression. After parsing th
 Operator precedence increases as you go down the chain (tighter binding lower in the tree).
 
 ```
-expression  → equality
+expression  → assignment
 
 equality    → comparison ( ("!=" | "==") comparison )*
 

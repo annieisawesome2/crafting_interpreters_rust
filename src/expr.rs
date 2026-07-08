@@ -19,6 +19,10 @@ pub enum Expr {
     Variable {
         name: Token
     },
+    Assign {
+        name: Token, 
+        value: Box<Expr>, 
+    }
 }
 
 pub fn print(expr: &Expr) -> String {
@@ -35,6 +39,7 @@ pub fn print(expr: &Expr) -> String {
         },
         Expr::Unary { operator, right } => parenthesize(&operator.lexeme, &[right]),
         Expr::Variable { name } => name.lexeme.clone(),
+        Expr::Assign { name, value } => {format!("(= {} {})", name.lexeme, print(value))}
     }
 }
 
