@@ -1,15 +1,24 @@
 use crate::expr::Expr;
 use crate::token::{LiteralValue, Token, TokenType};
 use crate::stmt::Stmt;
+use crate::environment::Environment; 
 
 pub struct RuntimeError {
     pub token: Token,
     pub message: String,
 }
 
-pub struct Interpreter;
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
+    pub fn new() -> Self {
+        Interpreter {
+            environment: Environment::new(),
+        }
+    }
+
     pub fn interpret(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
         for statement in statements {
             self.execute(statement)?; 
@@ -30,10 +39,12 @@ impl Interpreter {
                 Ok(())
             }
 
-            Stmt::Var { initializer, .. } => {
-                if let Some(init) = initializer {
-                    self.evaluate(init)?;
-                }
+            Stmt::Var { name, initializer } => {
+                let value = match initializer {
+                    Some(init) => self.evaluate(init)?,
+                    None => LiteralValue::Nil,
+                };
+                self.environment.define(name.lexeme.clone(), value);
                 Ok(())
             }
         }
@@ -55,7 +66,14 @@ impl Interpreter {
             }
 
             Expr::Variable { name } => {
-                Err(Self::runtime_error(name, "Undefined variable."))
+                if let Some(value) = self.environment.get(&name.lexeme) {
+                    Ok(value)
+                } else {
+                    Err(Self::runtime_error(
+                        name,
+                        format!("Undefined variable '{}'.", name.lexeme),
+                    ))
+                }
             }
         }
     }

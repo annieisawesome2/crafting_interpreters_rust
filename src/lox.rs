@@ -13,7 +13,7 @@ impl Lox {
         Lox {
             had_error: false,
             had_runtime_error: false,
-            interpreter: crate::interpreter::Interpreter,
+            interpreter: crate::interpreter::Interpreter::new(),
         }
     }
 
