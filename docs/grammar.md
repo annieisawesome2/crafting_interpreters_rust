@@ -101,7 +101,7 @@ primary     → "true" | "false" | "nil"
             | IDENTIFIER
 ```
 
-### Blocks and local scope (later)
+### Blocks and local scope
 
 ```
 statement   → exprStmt

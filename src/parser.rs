@@ -67,8 +67,27 @@ impl Parser {
         if self.match_types(&[TokenType::Print]) {
             return self.print_statement(lox); 
         }
+
+        if self.match_types(&[TokenType::LeftBrace]) {
+            return Ok(Stmt::Block {
+                statements: self.block(lox)?,
+            });
+        }
         self.expression_statement(lox)
     }
+
+    fn block(&mut self, lox: &mut Lox) -> Result<Vec<Stmt>, ParseError> {
+        let mut statements = Vec::new(); 
+
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            if let Some(stmt) = self.declaration(lox) {
+                statements.push(stmt);
+            }
+        }
+        self.consume(lox, TokenType::RightBrace, "Expect '}' after block.")?;
+        Ok(statements)
+    }
+
 
     fn print_statement(&mut self, lox: &mut Lox) -> Result<Stmt, ParseError> {
         let value = self.expression(lox)?;

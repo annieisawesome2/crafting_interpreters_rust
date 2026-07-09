@@ -101,6 +101,11 @@ In REPL mode, errors are printed and the prompt continues (`reset_error()` after
 ---
 
 ## Environments
+The interpreter tracks the **current scope** in `Interpreter::environment`. A scope is a `HashMap<String, LiteralValue>` plus an optional link to an enclosing scope. 
 
-The interpreter owns a global `Environment` (`HashMap<String, LiteralValue>`).
-`Interpreter::new()` creates the environment which lives when interpreter does so the global variables can persist. 
+
+| Method | Behavior |
+|--------|----------|
+| `define(name, value)` | Always writes to the **current** scope (new locals shadow outers) |
+| `get(name)` | Look in current scope; if missing, recurse into `enclosing` |
+| `assign(name, value)` | Update in current scope if present; else recurse into `enclosing` |

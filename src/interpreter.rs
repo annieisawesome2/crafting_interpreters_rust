@@ -47,7 +47,28 @@ impl Interpreter {
                 self.environment.define(name.lexeme.clone(), value);
                 Ok(())
             }
+
+            Stmt::Block { statements } => {
+                self.execute_block(statements)
+            }
         }
+    }
+
+    
+    fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+        let enclosing = std::mem::replace(&mut self.environment, Environment::new());
+        self.environment = Environment::new_enclosing(enclosing);
+        let result = self.execute_all(statements);
+        let block_env = std::mem::replace(&mut self.environment, Environment::new());
+        self.environment = block_env.take_enclosing();
+        result
+    }
+
+    fn execute_all(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+        for statement in statements {
+            self.execute(statement)?;
+        }
+        Ok(())
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {
@@ -87,8 +108,6 @@ impl Interpreter {
                     ))
                 }
             }
-
-
         }
     }
 
