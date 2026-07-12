@@ -105,8 +105,12 @@ primary     → "true" | "false" | "nil"
 
 ```
 statement   → exprStmt
+            | ifStmt
             | printStmt
             | block
+
+ifStmt      → "if" "(" expression ")" statement
+            ( "else" statement )?
 
 block       → "{" declaration* "}"
 ```
@@ -119,7 +123,9 @@ block       → "{" declaration* "}"
 program
 └── statement*
       ├── printStmt        →  print expression ;
-      └── exprStmt         →  expression ;
+      ├── exprStmt         →  expression ;
+      ├── ifStmt           →  if ( expression ) statement ( else statement )?
+      └── block            →  { declaration* }
 
 expression
 └── equality
