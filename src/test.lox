@@ -1,9 +1,2 @@
-if (true) 
-    print "yes";
-if (false) 
-    print "no"; else print "yes";
-if (true) 
-    if (false) 
-        print "a"; 
-else print "b";
-
+print "hi" or 2;
+print nil or "yes";

@@ -131,7 +131,7 @@ impl Parser {
 
     fn assignment(&mut self, lox: &mut Lox) -> Result<Expr, ParseError> {
         // parse left side expression, then check if it is assignable
-        let expr = self.equality(lox)?;
+        let expr = self.or(lox)?; 
 
         // consime if next token is =
         if self.match_types(&[TokenType::Equal]) {
@@ -153,7 +153,35 @@ impl Parser {
         Ok(expr)
     }
 
+    fn or(&mut self, lox:&mut Lox) -> Result<Expr, ParseError> {
+        let mut expr = self.and(lox)?;
 
+        while self.match_types(&[TokenType::Or]) {
+            let operator =self.previous().clone(); 
+            let right = self.and(lox)?; 
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            }
+        }
+        Ok(expr)
+    }
+
+    fn and(&mut self, lox:&mut Lox) -> Result<Expr, ParseError> {
+        let mut expr = self.equality(lox)?;
+
+        while self.match_types(&[TokenType::And]) {
+            let operator = self.previous().clone();
+            let right = self.equality(lox)?;
+            expr = Expr::Logical {
+                left: Box::new(expr),
+                operator,
+                right: Box::new(right),
+            };
+        }
+        Ok(expr)
+    }
 
     fn equality(&mut self, lox: &mut Lox) -> Result<Expr, ParseError> {
         let mut expr = self.comparison(lox)?;

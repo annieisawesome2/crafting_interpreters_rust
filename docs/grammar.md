@@ -81,13 +81,17 @@ declaration → varDecl
 varDecl     → "var" IDENTIFIER ( "=" expression )? ";"
 ```
 
-### Assignment
+### Assignment and Logical Operators
 
 ```
 expression  → assignment
 
 assignment  → IDENTIFIER "=" assignment
-            | equality
+            |logic_or
+
+logic_or    → logic_and ("or" logic_and) *
+logic_and   → equality ("and" equality )*
+
 ```
 
 Right-associative: `a = b = c` parses as `a = (b = c)`.

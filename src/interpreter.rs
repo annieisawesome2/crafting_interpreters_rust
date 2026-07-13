@@ -122,6 +122,20 @@ impl Interpreter {
                     ))
                 }
             }
+
+            Expr::Logical { left, operator, right } => {
+                let left_val = self.evaluate(left)?;
+
+                if operator.kind == TokenType::Or {
+                    if Self::is_truthy(&left_val) {
+                        return Ok(left_val);
+                    }
+                } else if !Self::is_truthy(&left_val) {
+                    return Ok(left_val);
+                }
+
+                self.evaluate(right)
+            }
         }
     }
 

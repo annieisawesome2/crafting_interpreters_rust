@@ -12,6 +12,11 @@ pub enum Expr {
     Literal {
         value: LiteralValue,
     },
+    Logical {
+        left: Box<Expr>, 
+        operator: Token, 
+        right: Box<Expr>,
+    },
     Unary {
         operator: Token,
         right: Box<Expr>,
@@ -40,6 +45,9 @@ pub fn print(expr: &Expr) -> String {
         Expr::Unary { operator, right } => parenthesize(&operator.lexeme, &[right]),
         Expr::Variable { name } => name.lexeme.clone(),
         Expr::Assign { name, value } => {format!("(= {} {})", name.lexeme, print(value))}
+        Expr::Logical { left, operator, right } => {
+            parenthesize(&operator.lexeme, &[left, right])
+        }
     }
 }
 
