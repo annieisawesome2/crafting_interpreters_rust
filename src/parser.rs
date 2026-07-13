@@ -64,6 +64,10 @@ impl Parser {
     }
 
     fn statement(&mut self, lox: &mut Lox) -> Result<Stmt, ParseError> {
+        if self.match_types(&[TokenType::If]) {
+            return self.if_statement(lox);
+        }
+
         if self.match_types(&[TokenType::Print]) {
             return self.print_statement(lox); 
         }
@@ -74,6 +78,25 @@ impl Parser {
             });
         }
         self.expression_statement(lox)
+    }
+     
+    fn if_statement(&mut self, lox: &mut Lox) -> Result<Stmt, ParseError> {
+        self.consume(lox, TokenType::LeftParen, "Expect '(' after 'if'.")?;
+        let condition = self.expression(lox)?;
+        self.consume(lox, TokenType::RightParen, "Expect ')' after if condition.")?; 
+        
+        let then_branch = self.statement(lox)?;
+        let else_branch = if self.match_types(&[TokenType::Else]) {
+            Some(Box::new(self.statement(lox)?))
+        } else {
+            None
+        };
+        
+        Ok(Stmt::If {
+            condition: Box::new(condition), 
+            then_branch: Box::new(then_branch), 
+            else_branch,
+        })
     }
 
     fn block(&mut self, lox: &mut Lox) -> Result<Vec<Stmt>, ParseError> {
