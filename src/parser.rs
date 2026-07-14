@@ -68,6 +68,10 @@ impl Parser {
             return self.if_statement(lox);
         }
 
+        if self.match_types(&[TokenType::While]) {
+            return self.while_statement(lox);
+        }
+
         if self.match_types(&[TokenType::Print]) {
             return self.print_statement(lox); 
         }
@@ -96,6 +100,17 @@ impl Parser {
             condition: Box::new(condition), 
             then_branch: Box::new(then_branch), 
             else_branch,
+        })
+    }
+
+    fn while_statement(&mut self, lox: &mut Lox) -> Result<Stmt, ParseError> {
+        self.consume(lox, TokenType::LeftParen, "Expect '(' after 'while'.")?;
+        let condition = self.expression(lox)?;
+        self.consume(lox, TokenType::RightParen, "Expect ')' after 'while'.")?;
+        let body = self.statement(lox)?;
+        Ok(Stmt::While {
+            condition: Box::new(condition),
+            body: Box::new(body),
         })
     }
 
