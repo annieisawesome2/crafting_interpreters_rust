@@ -6,6 +6,11 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Call {
+        callee: Box<Expr>,
+        paren: Token,
+        arguments: Vec<Expr>,
+    },
     Grouping {
         expression: Box<Expr>,
     },
@@ -34,6 +39,13 @@ pub fn print(expr: &Expr) -> String {
     match &expr {
         Expr::Binary { left, operator, right } => {
             parenthesize(&operator.lexeme, &[left, right])
+        }
+        Expr::Call { callee, arguments, .. } => {
+            let mut parts: Vec<&Expr> = vec![callee.as_ref()];
+            for arg in arguments {
+                parts.push(arg);
+            }
+            parenthesize("call", &parts)
         }
         Expr::Grouping { expression } => parenthesize("group", &[expression]),
         Expr::Literal { value } => match value {

@@ -144,6 +144,12 @@ impl Interpreter {
 
                 self.evaluate(right)
             }
+
+            // Wired up when function calls are evaluated
+            Expr::Call { paren, .. } => Err(Self::runtime_error(
+                paren,
+                "Can only call functions and classes.".to_string(),
+            )),
         }
     }
 

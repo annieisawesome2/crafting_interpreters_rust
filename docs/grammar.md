@@ -50,12 +50,24 @@ term        → factor ( ("-" | "+") factor )*
 factor      → unary ( ("/" | "*") unary )*
 
 unary       → ( "!" | "-" ) unary
-            | primary
+            | call
+
+call        → primary ( "(" arguments? ")" )*
+
+arguments   → expression ( "," expression )*
 
 primary     → "true" | "false" | "nil"
             | NUMBER | STRING
             | "(" expression ")"
 ```
+
+`call` matches a primary followed by zero or more function calls. With no parentheses, it is just a bare primary. Each call is a pair of parentheses with an optional argument list inside.
+
+The `*` on call allows a series like `fn(1)(2)(3)` — currying-style nested calls. `arguments` requires at least one expression; zero-argument calls are handled by making the whole `arguments` production optional in `call`.
+
+AST node: `Call { callee, paren, arguments }` — stores the callee expression, the closing `)` token (for runtime error location), and the argument list.
+
+In the parser, `unary()` calls `call()` instead of jumping straight to `primary()`. `call()` parses a primary, then loops while it sees `(`, finishing each call with `finish_call()`.
 
 ### Precedence (lowest to highest)
 
@@ -66,6 +78,7 @@ primary     → "true" | "false" | "nil"
 | Term | `+` `-` |
 | Factor | `*` `/` |
 | Unary | `!` `-` |
+| Call | `()` |
 | Primary | literals, grouping |
 
 ---
@@ -137,10 +150,11 @@ expression
             └── term
                   └── factor
                         └── unary
-                              └── primary
-                                    ├── true / false / nil
-                                    ├── NUMBER / STRING
-                                    └── ( expression )
+                              └── call
+                                    └── primary ( "(" arguments? ")" )*
+                                          ├── true / false / nil
+                                          ├── NUMBER / STRING
+                                          └── ( expression )
 ```
 
 ---
