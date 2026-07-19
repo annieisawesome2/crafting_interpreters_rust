@@ -53,6 +53,7 @@ pub fn print(expr: &Expr) -> String {
             LiteralValue::Number(n) => n.to_string(),
             LiteralValue::Boolean(b) => b.to_string(),
             LiteralValue::Nil => "nil".to_string(),
+            LiteralValue::Callable(_) => "<fn>".to_string(),
         },
         Expr::Unary { operator, right } => parenthesize(&operator.lexeme, &[right]),
         Expr::Variable { name } => name.lexeme.clone(),

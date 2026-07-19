@@ -145,11 +145,34 @@ impl Interpreter {
                 self.evaluate(right)
             }
 
-            // Wired up when function calls are evaluated
-            Expr::Call { paren, .. } => Err(Self::runtime_error(
-                paren,
-                "Can only call functions and classes.".to_string(),
-            )),
+            Expr::Call { callee, paren, arguments } => {
+                let callee = self.evaluate(callee)?;
+
+                let mut args = Vec::new();
+                for argument in arguments {
+                    args.push(self.evaluate(argument)?);
+                }
+
+                let LiteralValue::Callable(function) = callee else {
+                    return Err(Self::runtime_error(
+                        paren,
+                        "Can only call functions and classes.",
+                    ));
+                };
+
+                if args.len() != function.arity() {
+                    return Err(Self::runtime_error(
+                        paren,
+                        format!(
+                            "Expected {} arguments but got {}.",
+                            function.arity(),
+                            args.len()
+                        ),
+                    ));
+                }
+
+                function.call(self, args)
+            }
         }
     }
 
@@ -299,6 +322,7 @@ impl Interpreter {
                     text
                 }
             }
+            LiteralValue::Callable(_) => "<fn>".into(),
         }
     }
 

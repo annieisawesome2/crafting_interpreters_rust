@@ -1,11 +1,12 @@
+mod callable;
+mod environment;
 mod expr;
-mod lox;
-mod scanner;
-mod token;
-mod parser; 
 mod interpreter;
-mod stmt; 
-mod environment; 
+mod lox;
+mod parser;
+mod scanner;
+mod stmt;
+mod token; 
 
 use expr::{demo_expression, print};
 use lox::Lox;

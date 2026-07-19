@@ -1,3 +1,7 @@
+use std::rc::Rc;
+
+use crate::callable::LoxCallable;
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenType,
@@ -6,12 +10,25 @@ pub struct Token {
     pub line: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum LiteralValue {
     String(String),
     Number(f64),
     Boolean(bool),
     Nil,
+    Callable(Rc<dyn LoxCallable>),
+}
+
+impl std::fmt::Debug for LiteralValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LiteralValue::String(s) => write!(f, "String({s:?})"),
+            LiteralValue::Number(n) => write!(f, "Number({n:?})"),
+            LiteralValue::Boolean(b) => write!(f, "Boolean({b:?})"),
+            LiteralValue::Nil => write!(f, "Nil"),
+            LiteralValue::Callable(_) => write!(f, "Callable"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -73,6 +90,7 @@ impl std::fmt::Display for Token {
             Some(LiteralValue::Number(n)) => n.to_string(),
             Some(LiteralValue::Boolean(b)) => b.to_string(),
             Some(LiteralValue::Nil) => "nil".to_string(),
+            Some(LiteralValue::Callable(_)) => "<fn>".to_string(),
         };
         write!(f, "{:?} {} {}", self.kind, self.lexeme, literal)
     }

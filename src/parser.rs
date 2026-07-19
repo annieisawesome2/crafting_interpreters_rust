@@ -393,6 +393,10 @@ impl Parser {
         let mut arguments = Vec::new();
         if !self.check(TokenType::RightParen) {
             loop {
+                if arguments.len() >= 255 {
+                    lox.error(self.peek(), "Can't have more than 255 arguments."); 
+                }
+                
                 arguments.push(self.expression(lox)?);
                 if !self.match_types(&[TokenType::Comma]) {
                     break;
