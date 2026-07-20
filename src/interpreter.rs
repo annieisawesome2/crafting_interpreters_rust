@@ -2,6 +2,7 @@ use crate::expr::Expr;
 use crate::token::{LiteralValue, Token, TokenType};
 use crate::stmt::Stmt;
 use crate::environment::Environment; 
+use crate::callable::LoxCallable; 
 
 pub struct RuntimeError {
     pub token: Token,
@@ -12,10 +13,35 @@ pub struct Interpreter {
     environment: Environment,
 }
 
+pub struct Clock; 
+
+impl LoxCallable for Clock {
+    fn arity(&self) -> usize { 0 }
+
+    fn call(
+        &self,
+        _interpreter: &mut Interpreter,
+        _arguments: Vec<LiteralValue>,
+    ) -> Result<LiteralValue, RuntimeError> {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64();
+        Ok(LiteralValue::Number(secs))
+    }
+}
+
 impl Interpreter {
     pub fn new() -> Self {
+        let mut globals = Environment::new();
+        globals.define(
+            "clock".to_string(),
+            LiteralValue::Callable(std::rc::Rc::new(Clock)),
+        );
+
+
         Interpreter {
-            environment: Environment::new(),
+            environment: globals,
         }
     }
 
