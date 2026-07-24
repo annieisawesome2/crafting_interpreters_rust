@@ -99,6 +99,7 @@ impl Interpreter {
                 Ok(())
             }
 
+            Stmt::Function { .. } => Ok(()),
         }
     }
 

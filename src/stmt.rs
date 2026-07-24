@@ -4,6 +4,11 @@ use crate::token::Token;
 pub enum Stmt {
     Block { statements: Vec<Stmt> },
     Expression { expression: Box<Expr> }, 
+    Function {
+        name: Token,
+        params: Vec<Token>, 
+        body: Vec<Stmt>,
+    },
     Print { expression: Box<Expr> },
     Var {
         name: Token, 

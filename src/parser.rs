@@ -68,6 +68,10 @@ impl Parser {
             return self.if_statement(lox);
         }
 
+        if self.match_types(&[TokenType::Fun]) {
+            return self.function(lox, "function");
+        }
+
         if self.match_types(&[TokenType::While]) {
             return self.while_statement(lox);
         }
@@ -87,6 +91,50 @@ impl Parser {
         }
 
         self.expression_statement(lox)
+    }
+
+    fn function(&mut self, lox: &mut Lox, kind: &str) -> Result<Stmt, ParseError> {
+        let name = self
+            .consume(lox, TokenType::Identifier, &format!("Expect {kind} name."))?
+            .clone();
+
+        self.consume(
+            lox,
+            TokenType::LeftParen,
+            &format!("Expect '(' after {kind} name."),
+        )?;
+        let mut parameters = Vec::new();
+
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if parameters.len() >= 255 {
+                    lox.error(self.peek(), "Can't have more than 255 parameters.");
+                }
+
+                parameters.push(
+                    self.consume(lox, TokenType::Identifier, "Expect parameter name.")?
+                        .clone(),
+                );
+
+                if !self.match_types(&[TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(lox, TokenType::RightParen, "Expect ')' after parameters.")?;
+
+        self.consume(
+            lox,
+            TokenType::LeftBrace,
+            &format!("Expect '{{' before {kind} body."),
+        )?;
+        let body = self.block(lox)?;
+
+        Ok(Stmt::Function {
+            name,
+            params: parameters,
+            body,
+        })
     }
 
     fn for_statement(&mut self, lox: &mut Lox) -> Result<Stmt, ParseError> {
