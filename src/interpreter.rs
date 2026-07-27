@@ -13,7 +13,53 @@ pub struct Interpreter {
     environment: Environment,
 }
 
+pub struct LoxFunction {
+    params: Vec<Token>, 
+    body: Vec<Stmt>, 
+}
+
+impl LoxFunction {
+    pub fn new(declaration: &Stmt) -> Self {
+        let Stmt::Function { params, body, ..  } = declaration else {
+            unreachable!("LoxFunction::new expects Stmt::Function");
+        };
+
+        Self {
+            params: params.clone(), 
+            body: body.clone(), 
+        }
+    }
+}
+
 pub struct Clock; 
+
+impl LoxCallable for LoxFunction {
+    fn arity(&self) -> usize {
+        self.params.len()
+    }
+
+    fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        arguments: Vec<LiteralValue>,
+    ) -> Result<LiteralValue, RuntimeError> {
+        // new call env
+        let enclosing = std::mem::replace(&mut interpreter.environment, Environment::new());
+        interpreter.environment = Environment::new_enclosing(enclosing);
+
+        for (param, arg) in self.params.iter().cloned().zip(arguments.into_iter()) {
+            interpreter.environment.define(param.lexeme, arg);
+        }
+
+        interpreter.execute_all(&self.body)?;
+
+        // Restore prev env
+        let call_env = std::mem::replace(&mut interpreter.environment, Environment::new());
+        interpreter.environment = call_env.take_enclosing();
+
+        Ok(LiteralValue::Nil)
+    }
+}
 
 impl LoxCallable for Clock {
     fn arity(&self) -> usize { 0 }
