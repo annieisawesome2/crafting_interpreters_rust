@@ -1,5 +1,5 @@
-fun add(a, b) {
-  print a + b;
+fun sayHi(first, last) {
+  print "Hi, " + first + " " + last + "!";
 }
 
-print add;
+sayHi("Dear", "Reader");

@@ -151,7 +151,14 @@ impl Interpreter {
                 Ok(())
             }
 
-            Stmt::Function { name, ..} => {Ok(())},
+            Stmt::Function { name, .. } => {
+                let function = LoxFunction::new(stmt); 
+                self.environment.define(
+                    name.lexeme.clone(), 
+                    LiteralValue::Callable(std::rc::Rc::new(function)), 
+                ); 
+                Ok(())
+            },
         }
     }
 
