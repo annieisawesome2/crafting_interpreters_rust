@@ -1,71 +1,118 @@
 # Lox Grammar
 
-This document describes the Lox grammar as implemented in this project, plus rules from upcoming chapters.
+## Program and declarations
 
-Convention: `*` = zero or more, `?` = optional, `|` = alternative.
+```
+program        → declaration* EOF ;
+
+declaration    → funDecl
+               | varDecl
+               | statement ;
+
+funDecl        → "fun" function ;
+function       → IDENTIFIER "(" parameters? ")" block ;
+parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
+
+varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
+```
+
+The parser loops in `parse()` / `declaration()` until it reaches the end-of-file token. Declarations are the top-level unit so `var` and `fun` can appear inside blocks as well as at global scope.
+
+| Rule | Parser method | AST node |
+|------|---------------|----------|
+| `declaration` | `declaration()` / `try_declaration()` | dispatches |
+| `funDecl` / `function` | `function()` | `Stmt::Function` |
+| `varDecl` | `var_declaration()` | `Stmt::Var` |
 
 ---
 
-### Program
+## Statements
+
+One canonical `statement` rule — every statement form lives here (not redeclared per chapter).
 
 ```
-program     → statement* EOF
+statement      → exprStmt
+               | forStmt
+               | ifStmt
+               | printStmt
+               | returnStmt
+               | whileStmt
+               | block ;
+
+exprStmt       → expression ";" ;
+
+forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+                 expression? ";"
+                 expression? ")" statement ;
+
+ifStmt         → "if" "(" expression ")" statement
+               ( "else" statement )? ;
+
+printStmt      → "print" expression ";" ;
+
+returnStmt     → "return" expression? ";" ;   // not yet implemented
+
+whileStmt      → "while" "(" expression ")" statement ;
+
+block          → "{" declaration* "}" ;
 ```
 
-The parser loops in `parse()` until it reaches the end-of-file token.
+`for` is syntactic sugar: the parser desugars it into `while` (plus optional initializer / increment), so there is no `Stmt::For` node.
 
-### Statements
-
-```
-statement   → printStmt
-            | exprStmt
-
-printStmt   → "print" expression ";"
-exprStmt    → expression ";"
-```
+The semicolon terminates the **statement**, not the expression. After parsing the expression, `consume(SEMICOLON)` requires and advances past `;`.
 
 | Rule | Parser method | AST node |
 |------|---------------|----------|
 | `statement` | `statement()` | dispatches |
-| `printStmt` | `print_statement()` | `Stmt::Print` |
 | `exprStmt` | `expression_statement()` | `Stmt::Expression` |
+| `forStmt` | `for_statement()` | desugared (no dedicated node) |
+| `ifStmt` | `if_statement()` | `Stmt::If` |
+| `printStmt` | `print_statement()` | `Stmt::Print` |
+| `returnStmt` | — | — (planned) |
+| `whileStmt` | `while_statement()` | `Stmt::While` |
+| `block` | `block()` | `Stmt::Block` |
 
-Statement dispatch checks the current token: `print` → print statement; anything else → expression statement (fallthrough).
+---
 
-The semicolon terminates the **statement**, not the expression. After parsing the expression, `consume(SEMICOLON)` requires and advances past `;`.
-
-### Expressions
+## Expressions
 
 Operator precedence increases as you go down the chain (tighter binding lower in the tree).
 
 ```
-expression  → assignment
+expression     → assignment ;
 
-equality    → comparison ( ("!=" | "==") comparison )*
+assignment     → IDENTIFIER "=" assignment
+               | logic_or ;
 
-comparison  → term ( (">" | ">=" | "<" | "<=") term )*
+logic_or       → logic_and ( "or" logic_and )* ;
+logic_and      → equality ( "and" equality )* ;
 
-term        → factor ( ("-" | "+") factor )*
+equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 
-factor      → unary ( ("/" | "*") unary )*
+comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 
-unary       → ( "!" | "-" ) unary
-            | call
+term           → factor ( ( "-" | "+" ) factor )* ;
 
-call        → primary ( "(" arguments? ")" )*
+factor         → unary ( ( "/" | "*" ) unary )* ;
 
-arguments   → expression ( "," expression )*
+unary          → ( "!" | "-" ) unary
+               | call ;
 
-primary     → "true" | "false" | "nil"
-            | NUMBER | STRING
-            | "(" expression ")"
+call           → primary ( "(" arguments? ")" )* ;
+
+arguments      → expression ( "," expression )* ;
+
+primary        → "true" | "false" | "nil"
+               | NUMBER | STRING
+               | IDENTIFIER
+               | "(" expression ")" ;
 ```
 
-`call` matches a primary followed by zero or more function calls. With no parentheses, it is just a bare primary. Each call is a pair of parentheses with an optional argument list inside.
+Assignment is right-associative: `a = b = c` parses as `a = (b = c)`.
 
-The `*` on call allows a series like `fn(1)(2)(3)` — currying-style nested calls. `arguments` requires at least one expression; zero-argument calls are handled by making the whole `arguments` production optional in `call`.
+`call` matches a primary followed by zero or more function calls. With no parentheses, it is just a bare primary. The `*` allows a series like `fn(1)(2)(3)`. `arguments` requires at least one expression; zero-argument calls make the whole `arguments` production optional in `call`.
 
-AST node: `Call { callee, paren, arguments }` — stores the callee expression, the closing `)` token (for runtime error location), and the argument list.
+AST node: `Call { callee, paren, arguments }` — callee expression, closing `)` token (for runtime error location), and argument list.
 
 In the parser, `unary()` calls `call()` instead of jumping straight to `primary()`. `call()` parses a primary, then loops while it sees `(`, finishing each call with `finish_call()`.
 
@@ -73,69 +120,16 @@ In the parser, `unary()` calls `call()` instead of jumping straight to `primary(
 
 | Level | Operators |
 |-------|-----------|
+| Assignment | `=` |
+| Or | `or` |
+| And | `and` |
 | Equality | `==` `!=` |
 | Comparison | `>` `>=` `<` `<=` |
 | Term | `+` `-` |
 | Factor | `*` `/` |
 | Unary | `!` `-` |
 | Call | `()` |
-| Primary | literals, grouping |
-
----
-
-### Declarations and variables
-
-```
-program     → declaration* EOF
-
-declaration → funDecl
-            | varDecl
-            | statement
-
-funDecl → "fun" function ;
-function → IDENTIFIER "(" parameters? ")" block ;
-parameters → IDENTIFIER ("," IDENTIFIER)* ; 
-
-varDecl     → "var" IDENTIFIER ( "=" expression )? ";"
-```
-
-### Assignment and Logical Operators
-
-```
-expression  → assignment
-
-assignment  → IDENTIFIER "=" assignment
-            |logic_or
-
-logic_or    → logic_and ("or" logic_and) *
-logic_and   → equality ("and" equality )*
-
-```
-
-Right-associative: `a = b = c` parses as `a = (b = c)`.
-
-### Variable access
-
-```
-primary     → "true" | "false" | "nil"
-            | NUMBER | STRING
-            | "(" expression ")"
-            | IDENTIFIER
-```
-
-### Blocks and local scope
-
-```
-statement   → exprStmt
-            | ifStmt
-            | printStmt
-            | block
-
-ifStmt      → "if" "(" expression ")" statement
-            ( "else" statement )?
-
-block       → "{" declaration* "}"
-```
+| Primary | literals, grouping, identifiers |
 
 ---
 
@@ -143,23 +137,33 @@ block       → "{" declaration* "}"
 
 ```
 program
-└── statement*
-      ├── printStmt        →  print expression ;
-      ├── exprStmt         →  expression ;
-      ├── ifStmt           →  if ( expression ) statement ( else statement )?
-      └── block            →  { declaration* }
+└── declaration*
+      ├── funDecl          →  fun function
+      ├── varDecl          →  var IDENTIFIER ( = expression )? ;
+      └── statement
+            ├── exprStmt   →  expression ;
+            ├── forStmt    →  for ( ... ) statement   (desugared)
+            ├── ifStmt     →  if ( expression ) statement ( else statement )?
+            ├── printStmt  →  print expression ;
+            ├── returnStmt →  return expression? ;    (planned)
+            ├── whileStmt  →  while ( expression ) statement
+            └── block      →  { declaration* }
 
 expression
-└── equality
-      └── comparison
-            └── term
-                  └── factor
-                        └── unary
-                              └── call
-                                    └── primary ( "(" arguments? ")" )*
-                                          ├── true / false / nil
-                                          ├── NUMBER / STRING
-                                          └── ( expression )
+└── assignment
+      └── logic_or
+            └── logic_and
+                  └── equality
+                        └── comparison
+                              └── term
+                                    └── factor
+                                          └── unary
+                                                └── call
+                                                      └── primary ( "(" arguments? ")" )*
+                                                            ├── true / false / nil
+                                                            ├── NUMBER / STRING
+                                                            ├── IDENTIFIER
+                                                            └── ( expression )
 ```
 
 ---
