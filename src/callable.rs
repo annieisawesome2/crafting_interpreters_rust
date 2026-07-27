@@ -8,4 +8,8 @@ pub trait LoxCallable {
         interpreter: &mut Interpreter,
         arguments: Vec<LiteralValue>,
     ) -> Result<LiteralValue, RuntimeError>;
+
+    fn to_string(&self) -> String {
+        "<native fn>".to_string()
+    }
 }

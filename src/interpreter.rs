@@ -14,28 +14,34 @@ pub struct Interpreter {
 }
 
 pub struct LoxFunction {
-    params: Vec<Token>, 
-    body: Vec<Stmt>, 
+    name: Token,
+    params: Vec<Token>,
+    body: Vec<Stmt>,
 }
 
 impl LoxFunction {
     pub fn new(declaration: &Stmt) -> Self {
-        let Stmt::Function { params, body, ..  } = declaration else {
+        let Stmt::Function { name, params, body } = declaration else {
             unreachable!("LoxFunction::new expects Stmt::Function");
         };
 
         Self {
-            params: params.clone(), 
-            body: body.clone(), 
+            name: name.clone(),
+            params: params.clone(),
+            body: body.clone(),
         }
     }
 }
 
-pub struct Clock; 
+pub struct Clock;
 
 impl LoxCallable for LoxFunction {
     fn arity(&self) -> usize {
         self.params.len()
+    }
+
+    fn to_string(&self) -> String {
+        format!("<fn {}>", self.name.lexeme)
     }
 
     fn call(
@@ -145,7 +151,7 @@ impl Interpreter {
                 Ok(())
             }
 
-            Stmt::Function { .. } => Ok(()),
+            Stmt::Function { name, ..} => {Ok(())},
         }
     }
 
@@ -395,7 +401,7 @@ impl Interpreter {
                     text
                 }
             }
-            LiteralValue::Callable(_) => "<fn>".into(),
+            LiteralValue::Callable(f) => f.to_string(),
         }
     }
 
