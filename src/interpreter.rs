@@ -9,6 +9,11 @@ pub struct RuntimeError {
     pub message: String,
 }
 
+pub enum StmtOutcome {
+    Ok, 
+    Return(LiteralValue),
+}
+
 pub struct Interpreter {
     environment: Environment,
 }
@@ -57,13 +62,17 @@ impl LoxCallable for LoxFunction {
             interpreter.environment.define(param.lexeme, arg);
         }
 
-        interpreter.execute_all(&self.body)?;
+        let result = interpreter.execute_all(&self.body);
 
-        // Restore prev env
+        // Always restore previous env (return or error included).
         let call_env = std::mem::replace(&mut interpreter.environment, Environment::new());
         interpreter.environment = call_env.take_enclosing();
 
-        Ok(LiteralValue::Nil)
+        match result {
+            Ok(StmtOutcome::Return(value)) => Ok(value),
+            Ok(StmtOutcome::Ok) => Ok(LiteralValue::Nil),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -99,22 +108,33 @@ impl Interpreter {
 
     pub fn interpret(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
         for statement in statements {
-            self.execute(statement)?; 
+            match self.execute(statement)? {
+                StmtOutcome::Ok => {}
+                StmtOutcome::Return(_) => {}
+            }
         }
         Ok(())
     }
     
-    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<StmtOutcome, RuntimeError> {
         match stmt {
             Stmt::Expression { expression } => {
                 self.evaluate(expression)?;
-                Ok(())
+                Ok(StmtOutcome::Ok)
             }
 
             Stmt::Print { expression } => {
-                let value = self.evaluate(expression)?; 
-                println!("{}", Self::stringify(&value)); 
-                Ok(())
+                let value = self.evaluate(expression)?;
+                println!("{}", Self::stringify(&value));
+                Ok(StmtOutcome::Ok)
+            }
+
+            Stmt::Return { keyword: _, value } => {
+                let value = match value {
+                    Some(expr) => self.evaluate(expr)?,
+                    None => LiteralValue::Nil,
+                };
+                Ok(StmtOutcome::Return(value))
             }
 
             Stmt::Var { name, initializer } => {
@@ -123,16 +143,14 @@ impl Interpreter {
                     None => LiteralValue::Nil,
                 };
                 self.environment.define(name.lexeme.clone(), value);
-                Ok(())
+                Ok(StmtOutcome::Ok)
             }
 
-            Stmt::Block { statements } => {
-                self.execute_block(statements)
-            }
+            Stmt::Block { statements } => self.execute_block(statements),
 
             Stmt::If {
-                condition, 
-                then_branch, 
+                condition,
+                then_branch,
                 else_branch,
             } => {
                 if Self::is_truthy(&self.evaluate(condition)?) {
@@ -140,30 +158,33 @@ impl Interpreter {
                 } else if let Some(else_branch) = else_branch {
                     self.execute(else_branch)
                 } else {
-                    Ok(())
+                    Ok(StmtOutcome::Ok)
                 }
             }
 
             Stmt::While { condition, body } => {
                 while Self::is_truthy(&self.evaluate(condition)?) {
-                    self.execute(body)?;
+                    match self.execute(body)? {
+                        StmtOutcome::Ok => {}
+                        early @ StmtOutcome::Return(_) => return Ok(early),
+                    }
                 }
-                Ok(())
+                Ok(StmtOutcome::Ok)
             }
 
             Stmt::Function { name, .. } => {
-                let function = LoxFunction::new(stmt); 
+                let function = LoxFunction::new(stmt);
                 self.environment.define(
-                    name.lexeme.clone(), 
-                    LiteralValue::Callable(std::rc::Rc::new(function)), 
-                ); 
-                Ok(())
-            },
+                    name.lexeme.clone(),
+                    LiteralValue::Callable(std::rc::Rc::new(function)),
+                );
+                Ok(StmtOutcome::Ok)
+            }
         }
     }
 
     
-    fn execute_block(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+    fn execute_block(&mut self, statements: &[Stmt]) -> Result<StmtOutcome, RuntimeError> {
         let enclosing = std::mem::replace(&mut self.environment, Environment::new());
         self.environment = Environment::new_enclosing(enclosing);
         let result = self.execute_all(statements);
@@ -172,11 +193,14 @@ impl Interpreter {
         result
     }
 
-    fn execute_all(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+    fn execute_all(&mut self, statements: &[Stmt]) -> Result<StmtOutcome, RuntimeError> {
         for statement in statements {
-            self.execute(statement)?;
+            match self.execute(statement)? {
+                StmtOutcome::Ok => {}
+                early @ StmtOutcome::Return(_) => return Ok(early),
+            }
         }
-        Ok(())
+        Ok(StmtOutcome::Ok)
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<LiteralValue, RuntimeError> {

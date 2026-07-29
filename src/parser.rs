@@ -80,6 +80,10 @@ impl Parser {
             return self.print_statement(lox); 
         }
 
+        if self.match_types(&[TokenType::Return]) {
+            return self.return_statement(lox); 
+        }
+
         if self.match_types(&[TokenType::LeftBrace]) {
             return Ok(Stmt::Block {
                 statements: self.block(lox)?,
@@ -91,6 +95,18 @@ impl Parser {
         }
 
         self.expression_statement(lox)
+    }
+
+    fn return_statement(&mut self, lox: &mut Lox) -> Result<Stmt, ParseError> {
+        let keyword = self.previous().clone();
+        let value = if !self.check(TokenType::Semicolon) {
+            Some(Box::new(self.expression(lox)?))
+        } else {
+            None
+        };
+
+        self.consume(lox, TokenType::Semicolon, "Expect ';' after return value.")?;
+        Ok(Stmt::Return { keyword, value })
     }
 
     fn function(&mut self, lox: &mut Lox, kind: &str) -> Result<Stmt, ParseError> {

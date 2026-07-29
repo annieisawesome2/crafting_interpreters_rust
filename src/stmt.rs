@@ -11,6 +11,10 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
     Print { expression: Box<Expr> },
+    Return {
+        keyword: Token,
+        value: Option<Box<Expr>>,
+    },
     Var {
         name: Token, 
         initializer: Option<Box<Expr>>,
