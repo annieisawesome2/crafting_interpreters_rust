@@ -1,8 +1,10 @@
+use std::rc::Rc;
+
 use crate::expr::Expr;
 use crate::token::{LiteralValue, Token, TokenType};
 use crate::stmt::Stmt;
-use crate::environment::Environment; 
-use crate::callable::LoxCallable; 
+use crate::environment::{Environment, EnvRef};
+use crate::callable::LoxCallable;
 
 pub struct RuntimeError {
     pub token: Token,
@@ -10,22 +12,23 @@ pub struct RuntimeError {
 }
 
 pub enum StmtOutcome {
-    Ok, 
+    Ok,
     Return(LiteralValue),
 }
 
 pub struct Interpreter {
-    environment: Environment,
+    environment: EnvRef,
 }
 
 pub struct LoxFunction {
     name: Token,
     params: Vec<Token>,
     body: Vec<Stmt>,
+    closure: EnvRef,
 }
 
 impl LoxFunction {
-    pub fn new(declaration: &Stmt) -> Self {
+    pub fn new(declaration: &Stmt, closure: EnvRef) -> Self {
         let Stmt::Function { name, params, body } = declaration else {
             unreachable!("LoxFunction::new expects Stmt::Function");
         };
@@ -34,6 +37,7 @@ impl LoxFunction {
             name: name.clone(),
             params: params.clone(),
             body: body.clone(),
+            closure,
         }
     }
 }
@@ -54,19 +58,15 @@ impl LoxCallable for LoxFunction {
         interpreter: &mut Interpreter,
         arguments: Vec<LiteralValue>,
     ) -> Result<LiteralValue, RuntimeError> {
-        // new call env
-        let enclosing = std::mem::replace(&mut interpreter.environment, Environment::new());
-        interpreter.environment = Environment::new_enclosing(enclosing);
+        let previous = Rc::clone(&interpreter.environment);
+        interpreter.environment = Environment::new_enclosing(Rc::clone(&self.closure));
 
         for (param, arg) in self.params.iter().cloned().zip(arguments.into_iter()) {
-            interpreter.environment.define(param.lexeme, arg);
+            interpreter.environment.borrow_mut().define(param.lexeme, arg);
         }
 
         let result = interpreter.execute_all(&self.body);
-
-        // Always restore previous env (return or error included).
-        let call_env = std::mem::replace(&mut interpreter.environment, Environment::new());
-        interpreter.environment = call_env.take_enclosing();
+        interpreter.environment = previous;
 
         match result {
             Ok(StmtOutcome::Return(value)) => Ok(value),
@@ -94,12 +94,11 @@ impl LoxCallable for Clock {
 
 impl Interpreter {
     pub fn new() -> Self {
-        let mut globals = Environment::new();
-        globals.define(
+        let globals = Environment::new();
+        globals.borrow_mut().define(
             "clock".to_string(),
-            LiteralValue::Callable(std::rc::Rc::new(Clock)),
+            LiteralValue::Callable(Rc::new(Clock)),
         );
-
 
         Interpreter {
             environment: globals,
@@ -142,7 +141,7 @@ impl Interpreter {
                     Some(init) => self.evaluate(init)?,
                     None => LiteralValue::Nil,
                 };
-                self.environment.define(name.lexeme.clone(), value);
+                self.environment.borrow_mut().define(name.lexeme.clone(), value);
                 Ok(StmtOutcome::Ok)
             }
 
@@ -173,23 +172,21 @@ impl Interpreter {
             }
 
             Stmt::Function { name, .. } => {
-                let function = LoxFunction::new(stmt);
-                self.environment.define(
+                let function = LoxFunction::new(stmt, Rc::clone(&self.environment));
+                self.environment.borrow_mut().define(
                     name.lexeme.clone(),
-                    LiteralValue::Callable(std::rc::Rc::new(function)),
+                    LiteralValue::Callable(Rc::new(function)),
                 );
                 Ok(StmtOutcome::Ok)
             }
         }
     }
 
-    
     fn execute_block(&mut self, statements: &[Stmt]) -> Result<StmtOutcome, RuntimeError> {
-        let enclosing = std::mem::replace(&mut self.environment, Environment::new());
-        self.environment = Environment::new_enclosing(enclosing);
+        let previous = Rc::clone(&self.environment);
+        self.environment = Environment::new_enclosing(Rc::clone(&previous));
         let result = self.execute_all(statements);
-        let block_env = std::mem::replace(&mut self.environment, Environment::new());
-        self.environment = block_env.take_enclosing();
+        self.environment = previous;
         result
     }
 
@@ -219,7 +216,7 @@ impl Interpreter {
             }
 
             Expr::Variable { name } => {
-                if let Some(value) = self.environment.get(&name.lexeme) {
+                if let Some(value) = self.environment.borrow().get(&name.lexeme) {
                     Ok(value)
                 } else {
                     Err(Self::runtime_error(
@@ -229,10 +226,10 @@ impl Interpreter {
                 }
             }
 
-            Expr::Assign { name, value} => {
+            Expr::Assign { name, value } => {
                 let value = self.evaluate(value)?;
-                if self.environment.assign(&name.lexeme, value.clone()) {
-                    Ok(value) // value is assigned
+                if self.environment.borrow_mut().assign(&name.lexeme, value.clone()) {
+                    Ok(value)
                 } else {
                     Err(Self::runtime_error(
                         name,
