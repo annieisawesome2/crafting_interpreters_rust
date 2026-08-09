@@ -30,6 +30,14 @@ impl<'a> Resolver<'a> {
                 self.begin_scope();
                 self.resolve(statements);
                 self.end_scope();
+            }, 
+
+            Stmt::Var { name, initializer } => {
+                self.declare(name); 
+                if let Some(init) = initializer {
+                    self.resolve_expr(init);
+                }
+                self.define(name); 
             }
             _ => {}
         }
@@ -39,7 +47,21 @@ impl<'a> Resolver<'a> {
         self.scopes.push(HashMap::new()); 
     }
 
-    end_scope(&mut self) {
+    fn end_scope(&mut self) {
         self.scopes.pop(); 
+    }
+
+    fn declare(&mut self, name: &Token) {
+        let Some(scope) = self.scopes.last_mut() else {
+            return; // global
+        }
+
+        scope.insert(name.lexeme.clone(), false)
+    }
+
+    fn define(&mut self, name: &Token) {
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.insert(name.lexeme.clone, true); 
+        }
     }
 }
