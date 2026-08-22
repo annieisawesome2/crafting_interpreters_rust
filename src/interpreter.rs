@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::expr::Expr;
@@ -18,6 +19,8 @@ pub enum StmtOutcome {
 
 pub struct Interpreter {
     environment: EnvRef,
+    /// Depths of local variable bindings, keyed by expression identity.
+    locals: HashMap<usize, usize>,
 }
 
 pub struct LoxFunction {
@@ -102,7 +105,12 @@ impl Interpreter {
 
         Interpreter {
             environment: globals,
+            locals: HashMap::new(),
         }
+    }
+
+    pub fn resolve(&mut self, expr: &Expr, depth: usize) {
+        self.locals.insert(expr as *const Expr as usize, depth);
     }
 
     pub fn interpret(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {

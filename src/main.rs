@@ -4,6 +4,7 @@ mod expr;
 mod interpreter;
 mod lox;
 mod parser;
+mod resolver;
 mod scanner;
 mod stmt;
 mod token; 

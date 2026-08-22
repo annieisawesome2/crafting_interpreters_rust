@@ -5,7 +5,7 @@ use crate::token::{Token, TokenType};
 pub struct Lox {
     had_error: bool,
     had_runtime_error: bool,
-    interpreter: crate::interpreter::Interpreter,
+    pub(crate) interpreter: crate::interpreter::Interpreter,
 }
 
 impl Lox {
